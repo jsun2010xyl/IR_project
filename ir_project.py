@@ -28,12 +28,12 @@ def cosine(query,YIndex):
     return returnList
     
 
-trainFilePath="C:/UW/IR/project/mxm_dataset_train.txt"
-testFilePath="C:/UW/IR/project/mxm_dataset_test.txt"
+trainFilePath="data/mxm_dataset_train.txt"
+testFilePath="data/mxm_dataset_test.txt"
 #train和test文件0-16行都是注释，第17行是单词列表，第18行开始是数字
 
 #读入训练数据
-trainFile=open(trainFilePath,"r")
+trainFile=open(trainFilePath,"r",encoding='utf-8')
 trainLines=trainFile.readlines()
 trainDict={} #歌词索引
 lenOfVectorsX={}
@@ -77,17 +77,16 @@ for key in trainDict.keys():
 
 
 #读入训练数据
-testFile=open(testFilePath,"r")
+testFile=open(testFilePath,"r",encoding='utf-8')
 testLines=testFile.readlines()
 #train和test的词汇表是一样的，不用再处理
 
 testDict={}
 
 #创建输出文件
-outputFilePath="C:/UW/IR/project/"
-fwrite=open(outputFilePath+"VectorSpaceModelResults.txt", "w")
+fwrite=open("output/VectorSpaceModelResults.txt", "w")
 fwrite.close()
-fwrite=open(outputFilePath+"VectorSpaceModelResults.txt", "a")
+fwrite=open("output/VectorSpaceModelResults.txt", "a")
 
 print("Vector Space Model Test Results:")
 print(len(testLines)-18)
