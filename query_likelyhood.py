@@ -5,78 +5,89 @@ import time
 from util.lyrics_to_bow import lyrics_to_bow
 from util.mxm_api import getTrackName, getLyrics
 
-trainFilePath = "data/mxm_dataset_train.txt"
-testFilePath = "data/mxm_dataset_test.txt"
 
-print('Using Query-likelyhood Model.')
-print('Making necessary preparation. Please be patient.')
-start_time = time.time()
-# 读入训练数据
-trainFile = open(trainFilePath, "r", encoding='utf-8')
-trainLines = trainFile.readlines()
-prob_dict = {}
+class RankingModal:
+    def __init__(self):
+        self.prob_dict = {}
+        self.title_dict = {}
+        self.init_prob_dict(["data/mxm_dataset_train.txt",
+                             "data/mxm_dataset_test.txt"])
+        self.init_title_dict('data/mxm_779k_matches.txt')
 
-# Load word list in 17 line
-line17 = trainLines[17]
-wordList = [""]+line17[1:len(line17)-1].split(',')
+    def init_title_dict(self, fname):
+        f = open(fname, "r", encoding='utf-8')
+        for line in f.readlines():
+            if line[0] == '#':
+                continue
+            tid1, artist1, title1, tid2, artist2, title2 = line.split('<SEP>')
+            self.title_dict[tid2] = title2
 
-# Load lyrics term frequency
-for i in range(18, len(trainLines)):
-    stringList = trainLines[i].split(',')
-    key = int(stringList[1])
-    tf_dict = {}
+    def init_prob_dict(self, files):
+        for fname in files:
+            f = open(fname, "r", encoding='utf-8')
+            for line in f.readlines():
+                if line[0] == '#':
+                    continue
+                elif line[0] == '%':
+                    wordList = ['']+line[1:len(line)-1].split(',')
+                    continue
+                stringList = line.split(',')
+                key = int(stringList[1])
+                tf_dict = {}
 
-    for j in range(2, len(stringList)):
-        index, tf = stringList[j].split(':')
-        tf_dict[wordList[int(index)]] = int(tf)
-    prob_dict[key] = tf_dict
-trainFile.close()
+                for j in range(2, len(stringList)):
+                    index, tf = stringList[j].split(':')
+                    tf_dict[wordList[int(index)]] = int(tf)
+                self.prob_dict[key] = tf_dict
+            f.close()
 
-testFile = open(testFilePath, "r", encoding='utf-8')
-testLines = testFile.readlines()
-for i in range(18, len(testLines)):
-    stringList = testLines[i].split(',')
-    key = int(stringList[1])
-    tf_dict = {}
+        # Transform term frequency to probrability
+        for song in self.prob_dict.keys():
+            word_count = sum(self.prob_dict[song].values())
+            self.prob_dict[song] = {word: self.prob_dict[song][word] /
+                                    word_count for word in self.prob_dict[song].keys()}
 
-    for j in range(2, len(stringList)):
-        index, tf = stringList[j].split(':')
-        tf_dict[wordList[int(index)]] = int(tf)
-    prob_dict[key] = tf_dict
-testFile.close()
+    def get_rank(self, query, k=10):
+        query = lyrics_to_bow(query)
+        result = []
+        for song in self.prob_dict.keys():
+            prob = 1
+            for word in query.keys():
+                cur = self.prob_dict[song][word] if word in self.prob_dict[song].keys(
+                ) else 0
+                prob *= cur ** query[word]
+            result.append((prob, song))
+        result.sort(reverse=True)
+        return result[:k]
 
+if __name__ == "__main__":
+    print('Using Query-likelyhood Model.')
 
-print('Finish reading data. (%s seconds)' % round(time.time() - start_time, 4))
-
-start_time = time.time()
-for song in prob_dict.keys():
-    word_count = sum(prob_dict[song].values())
-    prob_dict[song] = {word: prob_dict[song][word] /
-                       word_count for word in prob_dict[song].keys()}
-print('Finish preprocess. (%s seconds)' % round(time.time() - start_time, 4))
-
-while True:
-    print('Please enter your query, or enter "exit()" to exit...')
-    query = input()
-    if query == 'exit()':
-        break
-    query = lyrics_to_bow(query)
+    print('Start initialize the modal')
     start_time = time.time()
-    ranking_result = []
-    for song in prob_dict.keys():
-        prob = 1
-        for word in query.keys():
-            cur = prob_dict[song][word] if word in prob_dict[song].keys() else 0
-            prob *= cur ** query[word]
-        ranking_result.append((prob, song))
-    ranking_result.sort(reverse=True)
-    print('Finish ranking. (%s seconds)' % round(time.time() - start_time, 4))
-    print('Top 5')
-    for i, (prob, tid) in enumerate(ranking_result[:5]):
+
+    modal = RankingModal()
+
+    print('Finish initialization. (%s seconds)' % round(time.time() - start_time, 4))
+    while True:
+        print('Please enter your query, or enter "exit()" to exit...')
+        query = input()
+        if query == 'exit()':
+            break
+        start_time = time.time()
+        k = 5
+        ranking_result = modal.get_rank(query, k)
+
+        print('Finish ranking. (%s seconds)' % round(time.time() - start_time, 4))
+        print('Top', k)
+        for i, (prob, tid) in enumerate(ranking_result):
+            tid = str(tid)
+            print('#' + str(i + 1), 'tid: ' + tid,
+                'probrability: ' + str(prob), sep='\t')
+            if tid in modal.title_dict:
+                print('Title: ' + modal.title_dict[tid])
+            else:
+                print('!Title not found')
+            print()
         print('-------------------------------------------------')
-        print('#' + str(i + 1), 'tid: ' + str(tid), 'probrability: ' + str(round(prob, 5)), sep='\t')
-        print('Title: ' + getTrackName(tid))
-        print(getLyrics(tid))
         print()
-    print('-------------------------------------------------')
-    print()
