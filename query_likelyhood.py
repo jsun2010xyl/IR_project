@@ -6,7 +6,7 @@ from util.lyrics_to_bow import lyrics_to_bow
 from util.mxm_api import getTrackName, getLyrics
 
 
-class RankingModal:
+class QueryLikelyhoodModal:
     def __init__(self):
         self.prob_dict = {}
         self.title_dict = {}
@@ -47,7 +47,7 @@ class RankingModal:
             self.prob_dict[song] = {word: self.prob_dict[song][word] /
                                     word_count for word in self.prob_dict[song].keys()}
 
-    def get_rank(self, query, k=10):
+    def get_rank(self, query, k=0):
         query = lyrics_to_bow(query)
         result = []
         for song in self.prob_dict.keys():
@@ -58,6 +58,8 @@ class RankingModal:
                 prob *= cur ** query[word]
             result.append((prob, song))
         result.sort(reverse=True)
+        if k == 0:
+            return result
         return result[:k]
 
 if __name__ == "__main__":
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     print('Start initialize the modal')
     start_time = time.time()
 
-    modal = RankingModal()
+    modal = QueryLikelyhoodModal()
 
     print('Finish initialization. (%s seconds)' % round(time.time() - start_time, 4))
     while True:

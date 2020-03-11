@@ -10,6 +10,6 @@ def get_ids_called(title):
             ids.append(tid2)
     return ids
 
-print(get_ids_called('Dream'))
-print(get_ids_called('dangerous'))
-print(get_ids_called('why'))
+# print(get_ids_called('Dream'))
+# print(get_ids_called('dangerous'))
+# print(get_ids_called('why'))
