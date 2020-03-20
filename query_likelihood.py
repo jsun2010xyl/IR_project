@@ -6,9 +6,10 @@ from util.lyrics_to_bow import lyrics_to_bow
 from util.mxm_api import getTrackName, getLyrics
 
 
-class QueryLikelyhoodModal:
+class QueryLikelihoodModal:
     def __init__(self):
         self.prob_dict = {}
+        self.smoothing_dict = {}
         self.title_dict = {}
         self.init_prob_dict(["data/mxm_dataset_train.txt",
                              "data/mxm_dataset_test.txt"])
@@ -44,16 +45,19 @@ class QueryLikelyhoodModal:
         # Transform term frequency to probrability
         for song in self.prob_dict.keys():
             word_count = sum(self.prob_dict[song].values())
+            vocabulary_size = len(self.prob_dict[song].keys())
             self.prob_dict[song] = {word: self.prob_dict[song][word] /
                                     word_count for word in self.prob_dict[song].keys()}
+            self.smoothing_dict[song] = {word: ((self.prob_dict[song][word] + 1) / (word_count + vocabulary_size)) for word in self.prob_dict[song].keys()}
 
-    def get_rank(self, query, k=0):
+    def get_rank(self, query, k=0, smoothing=True):
         query = lyrics_to_bow(query)
         result = []
-        for song in self.prob_dict.keys():
+        prob_dict = self.smoothing_dict if smoothing else self.prob_dict
+        for song in prob_dict.keys():
             prob = 1
             for word in query.keys():
-                cur = self.prob_dict[song][word] if word in self.prob_dict[song].keys(
+                cur = prob_dict[song][word] if word in prob_dict[song].keys(
                 ) else 0
                 prob *= cur ** query[word]
             result.append((prob, song))
@@ -62,15 +66,17 @@ class QueryLikelyhoodModal:
             return result
         return result[:k]
 
+
 if __name__ == "__main__":
-    print('Using Query-likelyhood Model.')
+    print('Using Query-likelihood Model.')
 
     print('Start initialize the modal')
     start_time = time.time()
 
-    modal = QueryLikelyhoodModal()
+    modal = QueryLikelihoodModal()
 
-    print('Finish initialization. (%s seconds)' % round(time.time() - start_time, 4))
+    print('Finish initialization. (%s seconds)' %
+          round(time.time() - start_time, 4))
     while True:
         print('Please enter your query, or enter "exit()" to exit...')
         query = input()
@@ -80,16 +86,17 @@ if __name__ == "__main__":
         k = 5
         ranking_result = modal.get_rank(query, k)
 
-        print('Finish ranking. (%s seconds)' % round(time.time() - start_time, 4))
+        print('Finish ranking. (%s seconds)' %
+              round(time.time() - start_time, 4))
         print('Top', k)
         for i, (prob, tid) in enumerate(ranking_result):
             tid = str(tid)
-            print('#' + str(i + 1), 'tid: ' + tid,
-                'probrability: ' + str(prob), sep='\t')
+            print('#' + str(i + 1), 'tid: ' + tid, 'prob: ' + str(prob), sep='\t')
             if tid in modal.title_dict:
                 print('Title: ' + modal.title_dict[tid])
             else:
                 print('!Title not found')
+            print(getLyrics(tid))
             print()
         print('-------------------------------------------------')
         print()

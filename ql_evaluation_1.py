@@ -3,11 +3,9 @@ from query_likelyhood import QueryLikelyhoodModal
 
 modal = QueryLikelyhoodModal()
 
-print('query', 'recall', 'precision', 'hit', 'ground_truth', sep=',')
+print('query', 'precision', 'recall', 'hit', 'ground_truth', sep=',')
 
 f = open('data/query.txt', 'r', encoding='utf-8')
-recalls = []
-precisions = []
 for query in f.readlines():
     query = query.rstrip('\n')
     ids = get_ids_called(query)
@@ -16,12 +14,10 @@ for query in f.readlines():
     for i, (prob, tid) in enumerate(result):
         if str(tid) in ids:
             count += 1
-    recall = count / 10
-    recalls.append(recall)
+    precision = count / 10
     if len(ids) != 0:
-        precision = count / len(ids)
+        recall = count / len(ids)
     else:
-        precision = 0
-    precisions.append(precision)
-    print(query, recall, precision, count, len(ids), sep=',')
+        recall = 0
+    print(query, precision, recall, count, len(ids), sep=',')
 
