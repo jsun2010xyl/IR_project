@@ -78,17 +78,11 @@ def getPrecisions(searchResultList, compareList):
         if searchResultList[i] in compareList:
             tp+=1
         returnList.append(tp/(i+1))
-    '''for i in range(1,searchNum):
-        tp=0
-        for j in range(0,i):
-            if searchResultList[j] in compareList:
-                tp+=1
-        returnList.append(tp/i)'''
     return returnList
     
 def outputPR(data):
     sum0=0
-    for j in range(0,searchNum-1):
+    for j in range(0,searchNum):
         sum0=0
         for i in range(0,len(data)):
             sum0+=data[i][j]
@@ -231,10 +225,10 @@ print(getMAP(titlePrecisions,titleReleDocNum))
 print("Lyrics Search MAP:")
 print(getMAP(lyricsPrecisions,lyricsReleDocNum))
 
-'''print("Lyrics Recall:")
+print("Lyrics Recall:")
 outputPR(lyricsRecalls)
 print("Lyrics Precision:")
-outputPR(lyricsPrecisions)'''
+outputPR(lyricsPrecisions)
 
 print("Title Recall:")
 outputPR(titleRecalls)
